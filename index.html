@@ -120,7 +120,7 @@ section{padding:100px 60px;}
 .hiw-connector{position:absolute;top:50%;right:-13px;width:26px;height:2px;background:linear-gradient(90deg,var(–blue),transparent);z-index:1;}
 
 /* PLANS */
-.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:0 auto;}
 .plan-card{background:var(–card);border:1px solid var(–border);border-radius:20px;padding:32px;position:relative;transition:all 0.3s;overflow:hidden;}
 .plan-card::before{content:’’;position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(–blue),transparent);opacity:0;transition:opacity 0.3s;}
 .plan-card:hover{transform:translateY(-5px);box-shadow:0 20px 50px rgba(0,0,0,0.4);}
@@ -702,15 +702,16 @@ footer{padding:40px 24px;}
       <div class="modal-title">Welcome Back</div>
       <button class="modal-close" onclick="closeModal('login')">×</button>
     </div>
+    <div id="loginError" style="display:none;background:rgba(255,50,50,0.1);border:1px solid rgba(255,50,50,0.3);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#ff6b6b;"></div>
     <div class="form-group">
       <label class="form-label">Email Address</label>
-      <input class="form-input" type="email" placeholder="you@email.com"/>
+      <input class="form-input" type="email" id="loginEmail" placeholder="you@email.com"/>
     </div>
     <div class="form-group">
       <label class="form-label">Password</label>
-      <input class="form-input" type="password" placeholder="Enter your password"/>
+      <input class="form-input" type="password" id="loginPassword" placeholder="Enter your password"/>
     </div>
-    <button class="modal-btn">Sign In to BitVault</button>
+    <button class="modal-btn" onclick="doLogin()">Sign In to BitVault</button>
     <div class="modal-switch">New to BitVault? <a onclick="switchModal('login','register')">Create an account →</a></div>
   </div>
 </div>
@@ -723,24 +724,31 @@ footer{padding:40px 24px;}
       <div class="modal-title">Start Investing</div>
       <button class="modal-close" onclick="closeModal('register')">×</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">Full Name</label>
-      <input class="form-input" type="text" placeholder="John Smith"/>
+    <div id="registerSuccess" style="display:none;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:10px;padding:16px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:8px;">🎉</div>
+      <div style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:4px;">Account Created!</div>
+      <div style="font-size:13px;color:var(--gray);">Welcome to BitVault. You can now make your first deposit!</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Email Address</label>
-      <input class="form-input" type="email" placeholder="you@email.com"/>
+    <div id="registerForm">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" type="text" id="regName" placeholder="John Smith"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" type="email" id="regEmail" placeholder="you@email.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone Number</label>
+        <input class="form-input" type="tel" id="regPhone" placeholder="(555) 000-0000"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="regPassword" placeholder="Min. 8 characters"/>
+      </div>
+      <button class="modal-btn" onclick="doRegister()">Create My Free Account</button>
+      <div class="modal-switch">Already have an account? <a onclick="switchModal('register','login')">Sign in →</a></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Phone Number</label>
-      <input class="form-input" type="tel" placeholder="(555) 000-0000"/>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Password</label>
-      <input class="form-input" type="password" placeholder="Min. 8 characters"/>
-    </div>
-    <button class="modal-btn">Create My Free Account</button>
-    <div class="modal-switch">Already have an account? <a onclick="switchModal('register','login')">Sign in →</a></div>
   </div>
 </div>
 
@@ -926,6 +934,45 @@ footer{padding:40px 24px;}
 </style>
 
 <script>
+// Register
+function doRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const phone=document.getElementById('regPhone').value.trim();
+  const password=document.getElementById('regPassword').value.trim();
+  if(!name||!email||!phone||!password){alert('Please fill in all fields.');return;}
+  if(password.length<8){alert('Password must be at least 8 characters.');return;}
+  // Save user to localStorage
+  const users=JSON.parse(localStorage.getItem('bv_users')||'[]');
+  if(users.find(u=>u.email===email)){alert('An account with this email already exists. Please sign in.');return;}
+  users.push({name,email,phone,password});
+  localStorage.setItem('bv_users',JSON.stringify(users));
+  localStorage.setItem('bv_current_user',JSON.stringify({name,email}));
+  document.getElementById('registerForm').style.display='none';
+  document.getElementById('registerSuccess').style.display='block';
+  setTimeout(()=>{
+    closeModal('register');
+    document.getElementById('registerForm').style.display='block';
+    document.getElementById('registerSuccess').style.display='none';
+    openModal('deposit');
+  },2500);
+}
+
+// Login
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value.trim();
+  const errEl=document.getElementById('loginError');
+  if(!email||!password){errEl.style.display='block';errEl.textContent='Please enter your email and password.';return;}
+  const users=JSON.parse(localStorage.getItem('bv_users')||'[]');
+  const user=users.find(u=>u.email===email&&u.password===password);
+  if(!user){errEl.style.display='block';errEl.textContent='Incorrect email or password. Please try again.';return;}
+  errEl.style.display='none';
+  localStorage.setItem('bv_current_user',JSON.stringify({name:user.name,email:user.email}));
+  closeModal('login');
+  openDashboard();
+}
+
 // Modals
 function openModal(t){document.getElementById(t+'Modal').classList.add('open');document.body.style.overflow='hidden';}
 function closeModal(t){document.getElementById(t+'Modal').classList.remove('open');document.body.style.overflow='';}
